@@ -1,20 +1,36 @@
 import { create } from "zustand";
-import { User } from "@/types/user";
+import { persist } from "zustand/middleware";
+import type { User } from "@/types/user";
 
-export type AuthStore = {
-  isAuth: boolean;
+interface AuthState {
   user: User | null;
+  isAuthenticated: boolean;
   setUser: (user: User) => void;
-  clearAuth: () => void;
-};
+  clearIsAuthenticated: () => void;
+}
 
-export const useAuth = create<AuthStore>()((set) => ({
-  isAuth: false,
-  user: null,
-  setUser: (user: User) => set({ user, isAuth: true }),
-  clearAuth: () =>
-    set({
-      isAuth: false,
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
       user: null,
+      isAuthenticated: false,
+
+      setUser: (user) =>
+        set(() => ({
+          user,
+          isAuthenticated: true,
+        })),
+
+      clearIsAuthenticated: () =>
+        set(() => ({
+          user: null,
+          isAuthenticated: false,
+        })),
     }),
-}));
+    {
+      name: "auth-store",
+      // Залишаємо лише потрібні поля для збереження
+      partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
+    }
+  )
+);
