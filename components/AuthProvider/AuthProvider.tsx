@@ -18,7 +18,7 @@ const AuthProvider = ({ children }: Props) => {
     const fetchUser = async () => {
       try {
         const isAuthenticated = await checkSession();
-        if (isAuthenticated.success) {
+        if (isAuthenticated.succss) {
           const user = await getMe();
           if (user) setUser(user);
         } else {
