@@ -1,118 +1,66 @@
 "use client";
 
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createNote } from "@/lib/api/clientApi";
 import { useRouter } from "next/navigation";
-import { useNoteStore } from "@/lib/store/noteStore";
-import { CreateNote, TagType } from "@/types/note";
-import css from "./NoteForm.module.css";
+import { useNoteDraftStore } from "@/lib/store/noteStore";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import styles from "./NoteForm.module.css";
+import { createNote } from "@/lib/api/clientApi";
+import type { FormEvent } from "react";
 
 export default function NoteForm() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const onClose = () => router.back();
 
-  const { draft, setDraft, clearDraft } = useNoteStore();
+  const { draft, setDraft, clearDraft } = useNoteDraftStore();
 
-  const [errors, setErrors] = useState<
-    Partial<Record<keyof CreateNote, string>>
-  >({});
-
-  const { mutate, isPending } = useMutation({
-    mutationFn: createNote,
+  const mutation = useMutation({
+    mutationFn: () => createNote(draft),
     onSuccess: () => {
-      queryClient.invalidateQueries();
       clearDraft();
-      onClose();
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
+      router.back();
     },
-    onError: (error) => {
-      console.error("Failed to create note:", error);
-      alert("Failed to create note. Please try again.");
+    onError: (err) => {
+      console.error("Error creating note", err);
     },
   });
 
-  const handleChange = (
-    event: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) => {
-    const { name, value } = event.target;
-    setDraft({ ...draft, [name]: value });
-  };
-
-  const handleSubmit = (formData: FormData) => {
-    const newErrors: typeof errors = {};
-
-    if (!draft.title || draft.title.trim().length < 3) {
-      newErrors.title = "Title must be at least 3 characters";
-    }
-
-    if (draft.title && draft.title.length > 50) {
-      newErrors.title = "Title must not exceed 50 characters";
-    }
-
-    if (draft.content && draft.content.length > 500) {
-      newErrors.content = "Content must not exceed 500 characters";
-    }
-
-    if (
-      !["Todo", "Work", "Personal", "Meeting", "Shopping"].includes(draft.tag)
-    ) {
-      newErrors.tag = "Invalid tag selected";
-    }
-
-    setErrors(newErrors);
-
-    if (Object.keys(newErrors).length > 0) {
-      return;
-    }
-
-    const newNote: CreateNote = {
-      title: formData.get("title") as string,
-      content: formData.get("content") as string,
-      tag: formData.get("tag") as TagType,
-    };
-    mutate(newNote);
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!draft.title.trim()) return;
+    mutation.mutate();
   };
 
   return (
-    <form className={css.form} action={handleSubmit}>
-      <div className={css.formGroup}>
-        <label htmlFor="title">Title</label>
+    <form onSubmit={handleSubmit} className={styles.form}>
+      <label className={styles.label}>
+        Title
         <input
-          required
-          value={draft.title}
-          id="title"
           type="text"
-          name="title"
-          onChange={handleChange}
-          className={css.input}
+          className={styles.input}
+          value={draft.title}
+          onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+          required
         />
-        {errors.title && <div className={css.error}>{errors.title}</div>}
-      </div>
+      </label>
 
-      <div className={css.formGroup}>
-        <label htmlFor="content">Content</label>
+      <label className={styles.label}>
+        Content
         <textarea
-          id="content"
-          name="content"
-          rows={8}
+          className={styles.textarea}
           value={draft.content}
-          onChange={handleChange}
-          className={css.textarea}
+          onChange={(e) => setDraft({ ...draft, content: e.target.value })}
         />
-        {errors.content && <div className={css.error}>{errors.content}</div>}
-      </div>
+      </label>
 
-      <div className={css.formGroup}>
-        <label htmlFor="tag">Tag</label>
+      <label className={styles.label}>
+        Tag
         <select
-          id="tag"
-          name="tag"
+          className={styles.select}
           value={draft.tag}
-          onChange={handleChange}
-          className={css.select}
+          onChange={(e) =>
+            setDraft({ ...draft, tag: e.target.value as typeof draft.tag })
+          }
         >
           <option value="Todo">Todo</option>
           <option value="Work">Work</option>
@@ -120,15 +68,22 @@ export default function NoteForm() {
           <option value="Meeting">Meeting</option>
           <option value="Shopping">Shopping</option>
         </select>
-        {errors.tag && <div className={css.error}>{errors.tag}</div>}
-      </div>
+      </label>
 
-      <div className={css.actions}>
-        <button onClick={onClose} type="button" className={css.cancelButton}>
-          Cancel
+      <div className={styles.actions}>
+        <button
+          type="submit"
+          className={styles.button}
+          disabled={mutation.isPending}
+        >
+          {mutation.isPending ? "Creating..." : "Create note"}
         </button>
-        <button type="submit" className={css.submitButton} disabled={isPending}>
-          {isPending ? "Creating..." : "Create note"}
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className={styles.cancel}
+        >
+          Cancel
         </button>
       </div>
     </form>

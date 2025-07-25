@@ -1,58 +1,31 @@
-import {
-  QueryClient,
-  HydrationBoundary,
-  dehydrate,
-} from "@tanstack/react-query";
 import { fetchNoteById } from "@/lib/api/clientApi";
-import NoteDetailsClient from "./NoteDetails.client";
-import { Metadata } from "next";
-
-type MetadataProps = {
-  params: Promise<{ id: string }>;
-};
+import type { Metadata } from "next";
+import type { Note } from "@/types/note";
 
 export async function generateMetadata({
   params,
-}: MetadataProps): Promise<Metadata> {
-  const res = await params;
-  const note = await fetchNoteById(res.id);
-  const pageUrl = `https://09-auth-beige-five.vercel.app/notes/${res.id}`;
+}: {
+  params: { id: string };
+}): Promise<Metadata> {
+  // Передаємо id без перетворення на number
+  const note: Note | null = await fetchNoteById(params.id);
+
+  const title = note ? `${note.title} — NoteHub` : "Нотатка — NoteHub";
+  const description =
+    note?.content?.slice(0, 100) || "Деталі нотатки у NoteHub.";
 
   return {
-    title: note.title,
-    description: note.content,
+    title,
+    description,
     openGraph: {
-      title: note.title,
-      description: note.content,
-      url: pageUrl,
+      title,
+      description,
+      url: `https://your-site-url.com/notes/${params.id}`,
       images: [
         {
           url: "https://ac.goit.global/fullstack/react/notehub-og-meta.jpg",
-          width: 1200,
-          height: 630,
-          alt: note.title,
         },
       ],
     },
   };
-}
-
-type NoteDetailsProps = {
-  params: Promise<{ id: string }>;
-};
-
-export default async function NoteDetails({ params }: NoteDetailsProps) {
-  const { id } = await params;
-  const queryClient = new QueryClient();
-
-  queryClient.prefetchQuery({
-    queryKey: ["note", id],
-    queryFn: () => fetchNoteById(id),
-  });
-
-  return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <NoteDetailsClient />
-    </HydrationBoundary>
-  );
 }

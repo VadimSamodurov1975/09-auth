@@ -1,38 +1,55 @@
 import NotesClient from "./Notes.client";
 import { Metadata } from "next";
+import { fetchNotesServer } from "@/lib/api/serverApi";
 
-type Props = {
-  params: Promise<{ slug: string[] }>;
-};
+interface Props {
+  params: { slug: string[] }; // ✅ тип без Promise
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
-  const category = slug[0] === "All" ? undefined : slug[0];
-  const categoryKind = category || "All";
-  const pageUrl = `https://09-auth-beige-five.vercel.app/notes/filter/${categoryKind}`;
+  const { slug } = params;
+  const category = slug[0];
 
   return {
-    title: `${category ? `${category}` : "All notes"}`,
-    description: `Filtered by ${category || "All notes"}`,
+    title: `Category: ${category}`,
+    description: `View all notes filtered by category: ${category}.`,
     openGraph: {
-      title: `${category ? `${category}` : "All notes"}`,
-      description: `Filtered by ${category || "All notes"}`,
-      url: pageUrl,
+      title: `Notes filtered by: ${category}`,
+      description: `Browse all notes in the "${category}" category.`,
+      url: `https://09-auth-ruddy-nine.vercel.app/notes/filter/${slug.join(
+        "/"
+      )}`,
+      siteName: "NoteHub",
       images: [
         {
-          url: "https://ac.goit.global/fullstack/react/notehub-og-meta.jpg",
+          url: "https://placehold.co/1200x630",
           width: 1200,
           height: 630,
-          alt: `${category ? `${category}` : "All notes"}`,
+          alt: `${category}`,
         },
       ],
+      type: "article",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `Notes filtered by: ${category}`,
+      description: `Browse all notes in the "${category}" category.`,
+      images: ["https://ac.goit.global/fullstack/react/og-meta.jpg"],
     },
   };
 }
 
-export default async function AppPage({ params }: Props) {
-  const { slug } = await params;
-  const category = slug[0] === "All" ? undefined : slug[0];
+const NotesByCategory = async ({ params }: Props) => {
+  const { slug } = params;
+  const category = slug[0]?.toLowerCase() === "all" ? undefined : slug[0];
 
-  return <NotesClient tag={category} />;
-}
+  const initialData = await fetchNotesServer("", 1, 10, category); // ✅ куки додаються в serverApi
+
+  return (
+    <div>
+      <NotesClient initialData={initialData} activeTag={category ?? "All"} />
+    </div>
+  );
+};
+
+export default NotesByCategory;

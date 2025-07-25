@@ -1,54 +1,34 @@
 "use client";
 
-import Modal from "@/components/Modal/Modal";
 import { useQuery } from "@tanstack/react-query";
 import { fetchNoteById } from "@/lib/api/clientApi";
-import css from "./NotePreview.module.css";
-import { useRouter } from "next/navigation";
-import { useParams } from "next/navigation";
+import type { Note } from "@/types/note";
 
-export default function NotePreview() {
-  const params = useParams();
-  const id = params.id as string | undefined;
-  const router = useRouter();
-  const handlePrevious = () => router.back();
+interface Props {
+  noteId: string;
+}
 
+export default function NotePreview({ noteId }: Props) {
   const {
     data: note,
     isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["note", id],
-    queryFn: () => fetchNoteById(id!),
-    enabled: !!id,
+    isError,
+  } = useQuery<Note>({
+    queryKey: ["note", noteId],
+    queryFn: () => fetchNoteById(String(noteId)), // 🔧 тут каст до number
     refetchOnMount: false,
   });
 
-  if (!id) return <p>Note not found</p>;
-
-  if (isLoading) return <p>Loading, please wait...</p>;
-
-  if (error || !note) return <p>Something went wrong.</p>;
-
-  const createdDate = `Created at: ${note.createdAt}`;
+  if (isLoading) return <p>Loading note...</p>;
+  if (isError || !note) return <p>Note not found.</p>;
 
   return (
-    <Modal onClose={handlePrevious}>
-      <div className={css.container}>
-        <div className={css.item}>
-          <div className={css.header}>
-            <h2>{note.title}</h2>
-            <button onClick={handlePrevious} className={css.backBtn36}>
-              Back
-            </button>
-          </div>
-          <p className={css.content}>{note.content}</p>
-          <div className={css.down}>
-            <span className={css.tag}>{note.tag}</span>
-            <p className={css.date}>{createdDate}</p>
-          </div>
-        </div>
-      </div>
-    </Modal>
+    <div>
+      <h2>{note.title}</h2>
+      <p>{note.content}</p>
+      <p>
+        <strong>Tag:</strong> {note.tag}
+      </p>
+    </div>
   );
 }

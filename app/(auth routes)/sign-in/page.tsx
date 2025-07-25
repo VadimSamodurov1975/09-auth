@@ -1,33 +1,40 @@
 "use client";
 
-import css from "./SignInPage.module.css";
-import { useRouter } from "next/router";
-import { LoginRequest, login } from "@/lib/api/clientApi";
-import { useAuth } from "@/lib/store/authStore";
+import { useRouter } from "next/navigation";
+import css from "./SignIn.module.css";
+import { useAuthStore } from "@/lib/store/authStore";
 import { useState } from "react";
+import { UserRequest } from "@/types/user";
+import { login } from "@/lib/api/clientApi";
 
-const Login = () => {
+const SignInPage = () => {
   const router = useRouter();
   const [error, setError] = useState("");
-  const setUser = useAuth((state) => state.setUser);
+  const setUser = useAuthStore((state) => state.setUser);
 
-  const handleLogin = async (formData: FormData) => {
+  const handleSubmit = async (formData: FormData) => {
+    const values: UserRequest = {
+      email: formData.get("email") as string,
+      password: formData.get("password") as string,
+    };
+
     try {
-      const info = Object.fromEntries(formData) as LoginRequest;
-      const res = await login(info);
+      const res = await login(values);
       if (res) {
         setUser(res);
-        router.push("/proile");
+        router.push("/profile");
+      } else {
+        setError("Invalid email or password");
       }
     } catch (error) {
-      console.log(error);
-      setError(`{error.message}`);
+      console.error("Registration error:", error);
+      setError("Something went wrong. Try again.");
     }
   };
 
   return (
     <main className={css.mainContent}>
-      <form action={handleLogin} className={css.form}>
+      <form className={css.form} action={handleSubmit}>
         <h1 className={css.formTitle}>Sign in</h1>
 
         <div className={css.formGroup}>
@@ -64,4 +71,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default SignInPage;

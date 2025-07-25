@@ -34,16 +34,10 @@
     white-space: pre-wrap;
 }
 
-.down {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
 .date {
     font-size: 14px;
     color: #888;
-    /* text-align: right; */
+    text-align: right;
 }
 
 .tag {

@@ -1,39 +1,20 @@
-import css from "./SidebarNotes.module.css";
 import Link from "next/link";
+import styles from "./SidebarNotes.module.css";
 
-export default async function SidebarNotes() {
+const tags = ["All", "Todo", "Work", "Personal", "Meeting", "Shopping"];
+
+export default function DefaultSidebar() {
   return (
-    <ul className={css.menuList}>
-      <li className={css.menuItem}>
-        <Link href={`/notes/filter/All`} className={css.menuLink}>
-          All notes
-        </Link>
-      </li>
-      <li className={css.menuItem}>
-        <Link href={`/notes/filter/Todo`} className={css.menuLink}>
-          Todo
-        </Link>
-      </li>
-      <li className={css.menuItem}>
-        <Link href={`/notes/filter/Work`} className={css.menuLink}>
-          Work
-        </Link>
-      </li>
-      <li className={css.menuItem}>
-        <Link href={`/notes/filter/Personal`} className={css.menuLink}>
-          Personal
-        </Link>
-      </li>
-      <li className={css.menuItem}>
-        <Link href={`/notes/filter/Meeting`} className={css.menuLink}>
-          Meeting
-        </Link>
-      </li>
-      <li className={css.menuItem}>
-        <Link href={`/notes/filter/Shopping`} className={css.menuLink}>
-          Shopping
-        </Link>
-      </li>
-    </ul>
+    <nav>
+      <ul className={styles.menuList}>
+        {tags.map((tag) => (
+          <li key={tag} className={styles.menuItem}>
+            <Link href={`/notes/filter/${tag}`} className={styles.menuLink}>
+              {tag}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }

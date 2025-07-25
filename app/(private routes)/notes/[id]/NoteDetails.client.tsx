@@ -2,41 +2,29 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { fetchNoteById } from "@/lib/api/clientApi";
-import css from "./NoteDetails.module.css";
-import { useParams } from "next/navigation";
+import type { Note } from "@/types/note";
 
-export default function NoteDetailsClient() {
-  const { id } = useParams<{ id: string }>();
+interface NoteDetailsClientProps {
+  noteId: number; // noteId приходить як number
+}
 
-  const {
-    data: note,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["note", id],
-    queryFn: () => fetchNoteById(id),
+export default function NoteDetailsClient({ noteId }: NoteDetailsClientProps) {
+  const { data, isLoading, isError } = useQuery<Note>({
+    queryKey: ["note", noteId],
+    queryFn: () => fetchNoteById(String(noteId)), // перетворюємо number у string
     refetchOnMount: false,
   });
 
-  if (isLoading) return <p>Loading, please wait...</p>;
-
-  if (error || !note) return <p>Something went wrong.</p>;
-
-  const createdDate = `Created at: ${note.createdAt}`;
+  if (isLoading) return <p>Loading note details...</p>;
+  if (isError || !data) return <p>Error loading note details.</p>;
 
   return (
-    <div className={css.container}>
-      <div className={css.item}>
-        <div className={css.header}>
-          <h2>{note.title}</h2>
-          <button className={css.editBtn}>Edit note</button>
-        </div>
-        <p className={css.content}>{note.content}</p>
-        <div className={css.down}>
-          <span className={css.tag}>{note.tag}</span>
-          <p className={css.date}>{createdDate}</p>
-        </div>
-      </div>
-    </div>
+    <article>
+      <h2>{data.title}</h2>
+      <p>{data.content}</p>
+      <p>
+        <strong>Tag:</strong> {data.tag}
+      </p>
+    </article>
   );
 }

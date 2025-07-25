@@ -1,34 +1,41 @@
 "use client";
 
-import css from "./SignUpPage.module.css";
-import { useRouter } from "next/router";
-import { RegisterRequest, register } from "@/lib/api/clientApi";
-import { useAuth } from "@/lib/store/authStore";
+import { useRouter } from "next/navigation";
+import css from "./SignUp.module.css";
 import { useState } from "react";
+import { useAuthStore } from "@/lib/store/authStore";
+import { register } from "@/lib/api/clientApi";
+import { UserRequest } from "@/types/user";
 
-const Register = () => {
+const SignUpPage = () => {
   const router = useRouter();
   const [error, setError] = useState("");
-  const setUser = useAuth((state) => state.setUser);
+  const setUser = useAuthStore((state) => state.setUser);
 
-  const handleRegister = async (formData: FormData) => {
+  const handleSubmit = async (formData: FormData) => {
+    const values: UserRequest = {
+      email: formData.get("email") as string,
+      password: formData.get("password") as string,
+    };
+
     try {
-      const info = Object.fromEntries(formData) as RegisterRequest;
-      const res = await register(info);
+      const res = await register(values);
       if (res) {
         setUser(res);
-        router.push("/proile");
+        router.push("/profile");
+      } else {
+        setError("Invalid email or password");
       }
-    } catch {
-      console.log("error", error);
-      setError(`{error.message}`);
+    } catch (error) {
+      console.error("Registration error:", error);
+      setError("Something went wrong. Try again.");
     }
   };
 
   return (
     <main className={css.mainContent}>
-      <h1 className={css.formTitle}>Sign up</h1>
-      <form action={handleRegister} className={css.form}>
+      <form className={css.form} action={handleSubmit}>
+        <h1 className={css.formTitle}>Sign up</h1>
         <div className={css.formGroup}>
           <label htmlFor="email">Email</label>
           <input
@@ -56,11 +63,10 @@ const Register = () => {
             Register
           </button>
         </div>
-
         {error && <p className={css.error}>{error}</p>}
       </form>
     </main>
   );
 };
 
-export default Register;
+export default SignUpPage;

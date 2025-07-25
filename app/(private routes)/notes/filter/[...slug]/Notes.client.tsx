@@ -1,64 +1,82 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useDebounce } from "use-debounce";
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { fetchNotes } from "@/lib/api/clientApi";
+import { NoteList } from "@/components/NoteList/NoteList";
 import Pagination from "@/components/Pagination/Pagination";
-import NoteList from "@/components/NoteList/NoteList";
-import Link from "next/link";
-import SearchBox from "@/components/SearchBox/SearchBox";
 import css from "./Notes.client.module.css";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { SearchBox } from "@/components/SearchBox/SearchBox";
+import { useDebounce } from "use-debounce";
+import { Toaster } from "react-hot-toast";
+import { ErrorMessage } from "@/components/ErrorMesage/ErrorMesage";
+import { Loader } from "@/components/Loader/Loader";
+import type { NotesResponse } from "@/types/note";
+import { useRouter } from "next/navigation";
 
-type Props = {
-  tag?: string;
-};
+interface NotesClientProps {
+  initialData: NotesResponse;
+  activeTag: string;
+}
 
-export default function NotesClient({ tag }: Props) {
-  const [searchText, setSearchText] = useState("");
+const NotesClient = ({ initialData, activeTag }: NotesClientProps) => {
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const [debouncedSearch] = useDebounce(searchText, 300);
+  const [debouncedSearchQuery] = useDebounce(searchQuery, 300);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [debouncedSearch, tag]);
+  const router = useRouter();
 
-  const notes = useQuery({
-    queryKey: ["notes", debouncedSearch, currentPage, tag],
-    queryFn: () =>
-      fetchNotes({ search: debouncedSearch, page: currentPage, tag }),
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["notes", debouncedSearchQuery, currentPage, activeTag],
+    queryFn: () => fetchNotes(debouncedSearchQuery, currentPage, 12, activeTag),
     placeholderData: keepPreviousData,
+    initialData:
+      debouncedSearchQuery === "" &&
+      currentPage === 1 &&
+      (initialData.tag ?? "") === (activeTag ?? "")
+        ? initialData
+        : undefined,
   });
 
-  const totalPages = notes.data?.totalPages ?? 0;
-
-  const handleSearchChange = (newSearch: string): void => {
-    setSearchText(newSearch);
+  const handleSearchQuery = (newQuery: string) => {
+    setSearchQuery(newQuery);
     setCurrentPage(1);
   };
 
-  return (
-    <div className={css.app}>
-      <header className={css.toolbar}>
-        <SearchBox value={searchText} onSearch={handleSearchChange} />
-        {totalPages > 1 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={(page: number) => setCurrentPage(page)}
-          />
-        )}
-        <Link href={"/notes/action/create"} className={css.button}>
-          Create note +
-        </Link>
-      </header>
+  const totalPages = data?.totalPages ?? 0;
+  const notes = data?.notes ?? [];
 
-      {notes.isLoading && <p>Loading...</p>}
-      {notes.isError && <p>Error loading notes.</p>}
-      {!notes.isLoading && !notes.isError && (
-        <NoteList notes={notes.data?.notes ?? []} />
-      )}
-    </div>
+  return (
+    <>
+      <Toaster position="top-center" reverseOrder={false} />
+      <div className={css.app}>
+        <header className={css.toolbar}>
+          <SearchBox value={searchQuery} onSearch={handleSearchQuery} />
+          {totalPages > 1 && (
+            <Pagination
+              totalPages={totalPages}
+              currentPage={currentPage}
+              onPageChange={(page: number) => setCurrentPage(page)}
+            />
+          )}
+          <button
+            className={css.button}
+            onClick={() => router.push("/notes/action/create")}
+          >
+            Create note +
+          </button>
+        </header>
+
+        {error && <ErrorMessage message="Could not fetch the list of notes." />}
+        {isLoading && <Loader />}
+        {!isLoading && !error && notes.length > 0 && <NoteList notes={notes} />}
+        {!isLoading && !error && notes.length === 0 && (
+          <p>No notes found for your search.</p>
+        )}
+      </div>
+    </>
   );
-}
+};
+
+export default NotesClient;

@@ -1,3 +1,3 @@
-export default function Loading() {
-  return <div>Loading...</div>;
+export default function GlobalLoading() {
+  return <p>Loading app...</p>;
 }
